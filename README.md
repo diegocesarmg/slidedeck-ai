@@ -252,7 +252,7 @@ This roadmap guides the development of SlideDeck AI, from core engine to product
 
 - [x] **Data Modeling:** Pydantic IR models (`Presentation`, `Slide`, `TextBox`, `ImageElement`, `ChartElement`).
 - [x] **Builder:** `python-pptx` engine converts IR JSON → `.pptx` (text, images, chart tables).
-- [x] **LLM Service:** Gemini 2.0 Flash with structured JSON output.
+- [x] **LLM Service:** Multi-provider support (Gemini / OpenAI / Claude) via `LLM_PROVIDER` env var.
 - [x] **Renderer:** LibreOffice headless PPTX → PDF → PNG.
 - [x] **API Routes:** `POST /api/generate`, `GET /api/download/{id}`, `GET /api/preview/{id}/{index}`.
 
@@ -263,19 +263,19 @@ This roadmap guides the development of SlideDeck AI, from core engine to product
 - [x] **SlidePreview:** Navigation carousel with thumbnail strip.
 - [x] **State + API:** Zustand store + typed `fetch` client.
 
-### Phase 3: Template & Reference Support 🔧 *(next)*
+### Phase 3: Template & Reference Support ✅
 
-- [ ] **Scanner:** Extract design tokens (colors, fonts, master layouts) from an uploaded `.pptx`.
-- [ ] **Template Mode:** Populate a `.pptx` template with AI-generated content, preserving slide masters and brand.
-- [ ] **Reference Mode:** Analyze a reference `.pptx` and produce a new deck matching its visual style.
-- [ ] **Upload UI:** File upload component in ChatPanel for template/reference files.
-- [ ] **API Update:** Extend `POST /api/generate` to accept optional `template_file` / `reference_file`.
+- [x] **Scanner:** Extract design tokens (colors, fonts, master layouts) from an uploaded `.pptx`.
+- [x] **Template Mode:** Populate a `.pptx` template with AI-generated content, preserving slide masters and brand.
+- [x] **Reference Mode:** Analyze a reference `.pptx` and produce a new deck matching its visual style.
+- [x] **Upload UI:** File upload component in ChatPanel with drag-and-drop support.
+- [x] **API Update:** `POST /api/generate` accepts `multipart/form-data` with optional file upload and `generation_mode`.
 
-### Phase 4: Multi-Provider LLM & Feedback Loop
+### Phase 4: Feedback Loop & Iteration ✅
 
-- [ ] **Pluggable LLM:** Abstract the LLM call behind a provider interface (Gemini / OpenAI / Claude), selectable via `LLM_PROVIDER` env var.
-- [ ] **Feedback Mechanism:** Allow users to request changes ("Make title bigger", "Change color") → sends a refinement prompt to the LLM with the current IR as context.
-- [ ] **Conversation History:** Maintain prompt history per session for iterative refinement.
+- [x] **Pluggable LLM:** Provider interface for Gemini / OpenAI / Claude, selectable via `LLM_PROVIDER` env var.
+- [x] **Feedback Mechanism:** `POST /api/refine/{id}` sends user instruction + current IR to LLM for modification.
+- [x] **Conversation History:** Prompt history tracked per session, displayed as chat-like messages in the UI.
 
 ### Phase 5: Production Polish
 

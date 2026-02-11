@@ -1,5 +1,10 @@
 """
 PPTX Builder — converts the IR (Presentation model) into an actual .pptx file.
+
+Supports three modes:
+- From Scratch: Creates a blank presentation
+- Template: Opens an existing .pptx and populates it with new content
+- Reference: Creates from scratch but applies extracted design tokens
 """
 
 from __future__ import annotations
@@ -62,20 +67,34 @@ class PresentationBuilder:
     def __init__(self) -> None:
         self._pptx: Optional[PptxPresentation] = None
 
-    def build(self, presentation: Presentation, output_path: Path) -> Path:
+    def build(
+        self,
+        presentation: Presentation,
+        output_path: Path,
+        template_path: Path | None = None,
+    ) -> Path:
         """
         Build a .pptx file from the Presentation IR model.
 
         Args:
             presentation: The IR model describing the presentation.
             output_path: Where to save the generated .pptx file.
+            template_path: Optional path to a template .pptx. If provided,
+                           the template's slide masters are preserved and
+                           new slides are added using the template's layouts.
 
         Returns:
             The path to the saved .pptx file.
         """
-        self._pptx = PptxPresentation()
-        self._pptx.slide_width = self.SLIDE_WIDTH
-        self._pptx.slide_height = self.SLIDE_HEIGHT
+        if template_path and template_path.exists():
+            logger.info("Building from template: %s", template_path)
+            self._pptx = PptxPresentation(str(template_path))
+            # Remove existing slides from template (keep masters only)
+            self._clear_slides()
+        else:
+            self._pptx = PptxPresentation()
+            self._pptx.slide_width = self.SLIDE_WIDTH
+            self._pptx.slide_height = self.SLIDE_HEIGHT
 
         for slide_model in presentation.slides:
             self._add_slide(slide_model)
@@ -87,10 +106,42 @@ class PresentationBuilder:
 
     # ── Private helpers ──────────────────────────────────────────────────
 
+    def _clear_slides(self) -> None:
+        """Remove all existing slides from the presentation (preserves masters)."""
+        slide_ids = list(self._pptx.slides._sldIdLst)
+        for sld_id in slide_ids:
+            rId = sld_id.get("r:id") or sld_id.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
+            if rId:
+                self._pptx.part.drop_rel(rId)
+            self._pptx.slides._sldIdLst.remove(sld_id)
+
+    def _get_layout(self, slide_model: Slide):
+        """Get the best matching layout from available slide layouts."""
+        # Try to find a layout matching the model's layout name
+        layout_name_map = {
+            "title": ["Title Slide", "Title"],
+            "title_content": ["Title and Content", "Title, Content"],
+            "two_column": ["Two Content", "Comparison"],
+            "section_header": ["Section Header"],
+            "blank": ["Blank"],
+            "image_full": ["Blank", "Picture with Caption"],
+        }
+
+        target_names = layout_name_map.get(slide_model.layout.value, ["Blank"])
+
+        for layout in self._pptx.slide_layouts:
+            if layout.name in target_names:
+                return layout
+
+        # Fallback: use the last layout (typically Blank) or index 6
+        try:
+            return self._pptx.slide_layouts[6]
+        except IndexError:
+            return self._pptx.slide_layouts[-1]
+
     def _add_slide(self, slide_model: Slide) -> None:
         """Add a single slide to the presentation."""
-        # Use a blank layout (index 6 is typically the blank layout)
-        slide_layout = self._pptx.slide_layouts[6]
+        slide_layout = self._get_layout(slide_model)
         slide = self._pptx.slides.add_slide(slide_layout)
 
         # Set background color

@@ -8,7 +8,7 @@ TypeScript interfaces are auto-generated from these definitions.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -42,6 +42,28 @@ class LayoutType(str, Enum):
     BLANK = "blank"
     SECTION_HEADER = "section_header"
     IMAGE_FULL = "image_full"
+
+
+class GenerationMode(str, Enum):
+    FROM_SCRATCH = "from_scratch"
+    TEMPLATE = "template"
+    REFERENCE = "reference"
+
+
+# ── Design Tokens (extracted from template/reference) ────────────────────────
+
+
+class DesignTokens(BaseModel):
+    """Design tokens extracted from a template or reference .pptx."""
+
+    primary_color: str = Field("#1a73e8", description="Primary brand color.")
+    secondary_color: str = Field("#e8710a", description="Secondary accent color.")
+    background_color: str = Field("#FFFFFF", description="Default background.")
+    font_heading: str = Field("Calibri", description="Font for headings.")
+    font_body: str = Field("Calibri", description="Font for body text.")
+    layout_names: list[str] = Field(default_factory=list, description="Available layout names.")
+    extracted_colors: list[str] = Field(default_factory=list, description="All colors found.")
+    extracted_fonts: list[str] = Field(default_factory=list, description="All fonts found.")
 
 
 # ── Element Models ───────────────────────────────────────────────────────────

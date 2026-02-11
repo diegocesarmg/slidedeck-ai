@@ -1,12 +1,12 @@
 """SlideDeck AI — FastAPI Application Entrypoint."""
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers.presentations import router as presentations_router
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 
@@ -16,6 +16,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+# ── Lifecycle ────────────────────────────────────────────────────────────────
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown lifecycle."""
+    settings = get_settings()
+    settings.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    logger.info(
+        "SlideDeck AI API started. Provider: %s | Output: %s",
+        settings.LLM_PROVIDER,
+        settings.OUTPUT_DIR,
+    )
+    yield
+    logger.info("SlideDeck AI API shutting down.")
+
+
 # ── App ──────────────────────────────────────────────────────────────────────
 
 settings = get_settings()
@@ -24,6 +42,7 @@ app = FastAPI(
     title=settings.APP_TITLE,
     version="0.1.0",
     description="Enterprise-grade Presentation Generator — converts prompts to .pptx",
+    lifespan=lifespan,
 )
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
@@ -38,6 +57,8 @@ app.add_middleware(
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
+from app.routers.presentations import router as presentations_router  # noqa: E402
+
 app.include_router(presentations_router)
 
 
@@ -48,13 +69,7 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
-
-
-# ── Lifecycle ────────────────────────────────────────────────────────────────
-
-@app.on_event("startup")
-async def startup():
-    """Ensure output directories exist on startup."""
-    settings.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    logger.info("SlideDeck AI API started. Output dir: %s", settings.OUTPUT_DIR)
+    return {
+        "status": "healthy",
+        "provider": get_settings().LLM_PROVIDER,
+    }
